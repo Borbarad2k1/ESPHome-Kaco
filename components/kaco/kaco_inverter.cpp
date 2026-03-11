@@ -80,17 +80,19 @@ void KacoInverter::on_frame(const std::vector<uint8_t> &frame)
     };
 
     // Fields (0-based in `line`)
-    std::string status_str = get_field(5, 3);
-    std::string vdc_str    = get_field(9, 5);
-    std::string idc_str    = get_field(15, 5);
-    std::string pdc_str    = get_field(21, 5);
-    std::string vac_str    = get_field(27, 5);
-    std::string iac_str    = get_field(33, 5);
-    std::string pac_str    = get_field(39, 5);
-    std::string temp_str   = get_field(45, 3);
-    std::string yield_str  = get_field(49, 6);
-    char checksum_field    = line[56];
-    std::string wr_type    = get_field(58, 6);  // "5000xi" in your example
+    std::string address_str = get_field(1, 2);
+	// line[3] is command
+    std::string status_str  = get_field(5, 3);
+    std::string vdc_str     = get_field(9, 5);
+    std::string idc_str     = get_field(15, 5);
+    std::string pdc_str     = get_field(21, 5);
+    std::string vac_str     = get_field(27, 5);
+    std::string iac_str     = get_field(33, 5);
+    std::string pac_str     = get_field(39, 5);
+    std::string temp_str    = get_field(45, 3);
+    std::string yield_str   = get_field(49, 6);
+    char checksum_field     = line[56];
+    std::string wr_type     = get_field(58, 6);  // "5000xi" in your example
 
     // Optional: checksum (sum from '*' up to and including space after E)
     uint8_t calc = 0;
@@ -111,10 +113,11 @@ void KacoInverter::on_frame(const std::vector<uint8_t> &frame)
     {
         ESP_LOGW(TAG, "Checksum mismatch: frame=%u calc=%u",
             (uint8_t) checksum_field, calc);
-        // decide if you want to return here or just log
+		return;
     }
 
     // Convert values
+    int   address = to_int(address_str);
     int   status = to_int(status_str);
     float vdc    = to_float(vdc_str);
     float idc    = to_float(idc_str);
@@ -126,6 +129,12 @@ void KacoInverter::on_frame(const std::vector<uint8_t> &frame)
     float daily  = to_float(yield_str);
     std::string status_text = status_to_str(status);
 
+	if(address != this->address_)
+	{
+        ESP_LOGW(TAG, "Address mismatch: frame=%d expected=%d",
+			address, this->address_);
+		return;
+	}
     // Build numeric value map (status handled separately)
     std::map<std::string, float> values;
     values["generator_voltage"] = vdc;

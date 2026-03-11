@@ -62,6 +62,11 @@ void KacoComponent::loop()
 
             // Reset RX buffer before sending
             this->rx_frame_buffer_.clear();
+			while (this->available())
+			{
+				uint8_t byte;
+				this->read_byte(&byte);
+			}
 
             ESP_LOGW(TAG, "Sending request to inverter %d", inv->get_address());
             this->send_frame_(req);
