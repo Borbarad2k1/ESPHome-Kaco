@@ -114,13 +114,30 @@ KacoSensor = kaco_ns.class_("KacoSensor", sensor.Sensor)
 # CONFIG SCHEMA
 # -----------------------------------------------------------------------------
 
-CONFIG_SCHEMA = (
+def _inject_metadata(config):
+    """Inject metadata from SENSOR_TYPES into the sensor schema."""
+    meta = SENSOR_TYPES[config[CONF_TYPE]]
+
+    # Inject metadata directly into config
+    config.setdefault("unit_of_measurement", meta["unit"])
+    config.setdefault("icon", meta["icon"])
+    config.setdefault("accuracy_decimals", meta["accuracy"])
+
+    device_class = meta.get("device_class")
+    if device_class:
+      config.setdefault("device_class", device_class)
+
+    return config
+
+CONFIG_SCHEMA = cv.All(
     sensor.sensor_schema(KacoSensor)
     .extend({
         cv.Required(CONF_INVERTER_ID): cv.use_id(KacoInverter),
         cv.Required(CONF_TYPE): cv.one_of(*SENSOR_TYPES.keys(), lower=True),
-    })
+    }),
+    _inject_metadata,
 )
+
 
 # -----------------------------------------------------------------------------
 # CODE GENERATION
@@ -148,11 +165,6 @@ async def to_code(config):
     meta = SENSOR_TYPES[config[CONF_TYPE]]
 
     cg.add(var.set_type(config[CONF_TYPE]))
-    cg.add(var.set_icon(meta["icon"]))
-    cg.add(var.set_unit_of_measurement(meta["unit"]))
-    cg.add(var.set_accuracy_decimals(meta["accuracy"]))
     
-    if(meta["device_class"] != None): 
-        cg.add(var.set_device_class(meta["device_class"]))
     if(meta["state_class"] != None): 
         cg.add(var.set_state_class(STATE_CLASSES.get(meta["state_class"])))

@@ -27,12 +27,23 @@ KacoTextSensor = kaco_ns.class_("KacoTextSensor", text_sensor.TextSensor)
 # CONFIG SCHEMA
 # -----------------------------------------------------------------------------
 
-CONFIG_SCHEMA = (
+
+def _inject_metadata(config):
+    """Inject metadata from SENSOR_TYPES into the sensor schema."""
+    meta = SENSOR_TYPES[config[CONF_TYPE]]
+
+    # Inject metadata directly into config
+    config.setdefault("icon", meta["icon"])
+
+    return config
+
+CONFIG_SCHEMA = cv.All(
     text_sensor.text_sensor_schema(KacoTextSensor)
     .extend({
         cv.Required(CONF_INVERTER_ID): cv.use_id(KacoInverter),
         cv.Required(CONF_TYPE): cv.one_of(*SENSOR_TYPES.keys(), lower=True),
-    })
+    }),
+    _inject_metadata,
 )
 
 # -----------------------------------------------------------------------------
@@ -50,4 +61,4 @@ async def to_code(config):
     # Apply metadata
     meta = SENSOR_TYPES[config[CONF_TYPE]]
 
-    cg.add(var.set_icon(meta["icon"]))
+    cg.add(var.set_type(config[CONF_TYPE]))
